@@ -8,7 +8,7 @@ class PiNetworkTableListener {
 
   public PiNetworkTableListener() {
     ntInst = NetworkTableInstance.getDefault();
-    ntInst.setClientTeam(6763);
+    ntInst.startClientTeam(6763);
   }
 
   public static void main(String[] args) {
