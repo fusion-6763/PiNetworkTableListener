@@ -1,36 +1,53 @@
 package ntlistener;
 
+import java.io.IOException;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 
 class PiNetworkTableListener {
-  private NetworkTableInstance ntInst;
+  private final NetworkTableInstance ntInst;
 
   public PiNetworkTableListener() {
     ntInst = NetworkTableInstance.getDefault();
     ntInst.startClientTeam(6763);
   }
 
-  public static void main(String[] args) {
+  public static void main(final String[] args) {
     final PiNetworkTableListener piNetworkTableListener = new PiNetworkTableListener();
     piNetworkTableListener.run();
   }
 
   public void run() {
-    final NetworkTable table = ntInst.getTable("pi-table");
-    final NetworkTableEntry processingOnEntry = table.getEntry("on");
-    ntInst.startDSClient(); // recommended if running on DS computer; this gets the robot IP from the DS
+    final Runtime rt = Runtime.getRuntime();
+
+    try {
+      rt.exec("sudo java -jar -jar chameleon-vision.jar");
+    } catch (final SecurityException | IOException | NullPointerException | IndexOutOfBoundsException e) {
+      System.out.println("Starting Chameleon Vision failed: " + e.getMessage());
+      return;
+    }
+
+    final NetworkTable cameraTable = ntInst.getTable("chameleon-vision").getSubTable("BallTracker");
+    final NetworkTableEntry driverModeEntry = cameraTable.getEntry("driver_mode");
+    final NetworkTable piTable = ntInst.getTable("pi-table");
+    final NetworkTableEntry processingOnEntry = piTable.getEntry("on");
+
     while (true) {
       try {
         Thread.sleep(500);
-      } catch (InterruptedException ex) {
+      } catch (final InterruptedException ex) {
         System.out.println("interrupted");
         return;
       }
-      boolean on = processingOnEntry.getBoolean(false);
+
+      // Get the newest 'processing on' value.
+      final boolean on = processingOnEntry.getBoolean(false);
       System.out.println("Vision Processing Enabled: " + on);
-      // TODO: Toggle the chameleon vision command here.
+
+      // Set the driver mode value.
+      driverModeEntry.setBoolean(!on);
     }
   }
 }
